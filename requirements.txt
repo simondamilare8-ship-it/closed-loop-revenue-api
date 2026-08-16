@@ -1,5 +1,7 @@
-venv/
-__pycache__/
-*.pyc
-.env
-.vscode/
+fastapi
+uvicorn[standard]
+pydantic
+pandas
+numpy
+scikit-learn
+scipy
