@@ -1,7 +1,5 @@
-fastapi
-uvicorn[standard]
-pydantic
-pandas
-numpy
-scikit-learn
-scipy
+venv/
+__pycache__/
+*.pyc
+.env
+.vscode/
