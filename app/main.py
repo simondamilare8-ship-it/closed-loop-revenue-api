@@ -32,7 +32,7 @@ class Prospect(BaseModel):
 
 
 class Feedback(BaseModel):
-    prospect_id: str
+    prediction_id: int
     outcome: str
 
 
