@@ -7,7 +7,21 @@ import pandas as pd
 # CONFIGURATION
 # ============================================================
 
-API_URL = "http://127.0.0.1:8000"
+# Local development:
+#     http://127.0.0.1:8000
+#
+# Streamlit Cloud:
+#     Set API_URL inside Streamlit Cloud Secrets.
+#
+# Example:
+#     API_URL = "https://your-fastapi-url.com"
+try:
+    API_URL = st.secrets["API_URL"]
+except (FileNotFoundError, KeyError):
+    API_URL = "http://127.0.0.1:8000"
+
+API_URL = API_URL.rstrip("/")
+
 
 st.set_page_config(
     page_title="Closed-Loop Revenue Intelligence",
@@ -21,6 +35,8 @@ st.set_page_config(
 # ============================================================
 
 def api_get(endpoint):
+    """Send GET request to FastAPI backend."""
+
     try:
         response = requests.get(
             f"{API_URL}{endpoint}",
@@ -37,6 +53,8 @@ def api_get(endpoint):
 
 
 def api_post(endpoint, payload=None):
+    """Send POST request to FastAPI backend."""
+
     try:
         response = requests.post(
             f"{API_URL}{endpoint}",
@@ -67,6 +85,7 @@ st.sidebar.markdown(
     """
 )
 
+
 page = st.sidebar.radio(
     "Navigation",
     [
@@ -79,13 +98,23 @@ page = st.sidebar.radio(
     ]
 )
 
+
 st.sidebar.divider()
+
+
+# ============================================================
+# API HEALTH CHECK
+# ============================================================
 
 health = api_get("/health")
 
+
 if health and health.get("status") == "healthy":
+
     st.sidebar.success("API Online")
+
 else:
+
     st.sidebar.error("API Offline")
 
 
@@ -109,22 +138,60 @@ if page == "🏠 Dashboard":
 
     st.divider()
 
+    # --------------------------------------------------------
+    # GET DASHBOARD DATA
+    # --------------------------------------------------------
+
     predictions_data = api_get("/predictions")
+
     feedback_data = api_get("/feedback")
+
     performance_data = api_get("/model-performance")
 
+
+    # --------------------------------------------------------
+    # DEFAULT VALUES
+    # --------------------------------------------------------
+
     total_predictions = 0
+
     total_feedback = 0
+
     matched_predictions = 0
+
     accuracy = 0
 
+
+    # --------------------------------------------------------
+    # PREDICTIONS
+    # --------------------------------------------------------
+
     if predictions_data:
-        total_predictions = predictions_data.get("count", 0)
+
+        total_predictions = predictions_data.get(
+            "count",
+            0
+        )
+
+
+    # --------------------------------------------------------
+    # FEEDBACK
+    # --------------------------------------------------------
 
     if feedback_data:
-        total_feedback = feedback_data.get("count", 0)
+
+        total_feedback = feedback_data.get(
+            "count",
+            0
+        )
+
+
+    # --------------------------------------------------------
+    # MODEL PERFORMANCE
+    # --------------------------------------------------------
 
     if performance_data:
+
         matched_predictions = performance_data.get(
             "total_matched_predictions",
             0
@@ -135,39 +202,61 @@ if page == "🏠 Dashboard":
             0
         )
 
+
+    # --------------------------------------------------------
+    # METRICS
+    # --------------------------------------------------------
+
     col1, col2, col3, col4 = st.columns(4)
 
+
     with col1:
+
         st.metric(
             "Total Predictions",
             total_predictions
         )
 
+
     with col2:
+
         st.metric(
             "CRM Outcomes",
             total_feedback
         )
 
+
     with col3:
+
         st.metric(
             "Matched Predictions",
             matched_predictions
         )
 
+
     with col4:
+
         st.metric(
             "Closed-Loop Accuracy",
             f"{accuracy * 100:.1f}%"
         )
 
+
     st.divider()
+
+
+    # --------------------------------------------------------
+    # CLOSED LOOP PROCESS
+    # --------------------------------------------------------
 
     st.subheader("🔗 How the Closed Loop Works")
 
+
     col1, col2, col3, col4 = st.columns(4)
 
+
     with col1:
+
         st.info(
             """
             **1. Predict**
@@ -177,7 +266,9 @@ if page == "🏠 Dashboard":
             """
         )
 
+
     with col2:
+
         st.info(
             """
             **2. Track**
@@ -187,7 +278,9 @@ if page == "🏠 Dashboard":
             """
         )
 
+
     with col3:
+
         st.info(
             """
             **3. Learn**
@@ -197,7 +290,9 @@ if page == "🏠 Dashboard":
             """
         )
 
+
     with col4:
+
         st.info(
             """
             **4. Improve**
@@ -207,22 +302,38 @@ if page == "🏠 Dashboard":
             """
         )
 
+
     st.divider()
+
+
+    # --------------------------------------------------------
+    # API INFORMATION
+    # --------------------------------------------------------
 
     st.subheader("🚀 API Information")
 
+
     col1, col2 = st.columns(2)
 
+
     with col1:
+
         st.write("**API:**")
+
         st.code(API_URL)
 
+
     with col2:
+
         st.write("**API Status:**")
 
+
         if health:
+
             st.success("Healthy")
+
         else:
+
             st.error("Unable to connect")
 
 
@@ -238,9 +349,15 @@ elif page == "🔮 Predict Prospect":
         "Enter the prospect's current revenue signals."
     )
 
+
+    # --------------------------------------------------------
+    # FORM
+    # --------------------------------------------------------
+
     with st.form("prediction_form"):
 
         col1, col2 = st.columns(2)
+
 
         with col1:
 
@@ -248,6 +365,7 @@ elif page == "🔮 Predict Prospect":
                 "Prospect ID",
                 value="CLAY-001"
             )
+
 
             recent_engagement = st.slider(
                 "Recent Engagement",
@@ -257,6 +375,7 @@ elif page == "🔮 Predict Prospect":
                 step=0.1
             )
 
+
             company_growth = st.slider(
                 "Company Growth",
                 min_value=0.0,
@@ -264,6 +383,7 @@ elif page == "🔮 Predict Prospect":
                 value=9.0,
                 step=0.1
             )
+
 
         with col2:
 
@@ -275,6 +395,7 @@ elif page == "🔮 Predict Prospect":
                 step=0.1
             )
 
+
             employee_count = st.number_input(
                 "Employee Count",
                 min_value=1,
@@ -282,114 +403,174 @@ elif page == "🔮 Predict Prospect":
                 step=1
             )
 
+
         submitted = st.form_submit_button(
             "🚀 Predict Conversion",
             use_container_width=True
         )
 
+
+    # --------------------------------------------------------
+    # PROCESS PREDICTION
+    # --------------------------------------------------------
+
     if submitted:
 
         if not prospect_id.strip():
-            st.warning("Please enter a Prospect ID.")
+
+            st.warning(
+                "Please enter a Prospect ID."
+            )
 
         else:
 
             payload = {
+
                 "prospect_id": prospect_id,
-                "recent_engagement": recent_engagement,
-                "company_growth": company_growth,
-                "previous_interaction": previous_interaction,
-                "employee_count": employee_count
+
+                "recent_engagement":
+                    recent_engagement,
+
+                "company_growth":
+                    company_growth,
+
+                "previous_interaction":
+                    previous_interaction,
+
+                "employee_count":
+                    employee_count
             }
+
 
             response = api_post(
                 "/predict",
                 payload
             )
 
+
             if response and response.status_code == 200:
 
                 result = response.json()
+
 
                 st.success(
                     "Prediction generated successfully."
                 )
 
+
                 st.divider()
+
 
                 probability = result.get(
                     "conversion_probability",
                     0
                 )
 
+
                 prediction = result.get(
                     "prediction",
                     "N/A"
                 )
+
 
                 prediction_id = result.get(
                     "prediction_id",
                     "N/A"
                 )
 
+
                 model_version = result.get(
                     "model_version",
                     "N/A"
                 )
 
+
+                # ------------------------------------------------
+                # RESULT METRICS
+                # ------------------------------------------------
+
                 col1, col2, col3, col4 = st.columns(4)
 
+
                 with col1:
+
                     st.metric(
                         "Conversion Probability",
                         f"{probability * 100:.1f}%"
                     )
 
+
                 with col2:
+
                     st.metric(
                         "Prediction",
                         prediction.upper()
                     )
 
+
                 with col3:
+
                     st.metric(
                         "Prediction ID",
                         prediction_id
                     )
 
+
                 with col4:
+
                     st.metric(
                         "Model Version",
                         model_version
                     )
 
+
                 st.divider()
 
+
+                # ------------------------------------------------
+                # KEY SIGNALS
+                # ------------------------------------------------
+
                 st.subheader("🔍 Key Signals")
+
 
                 signals = result.get(
                     "key_signals",
                     []
                 )
 
+
                 for signal in signals:
-                    st.write(f"• {signal}")
+
+                    st.write(
+                        f"• {signal}"
+                    )
+
 
                 st.divider()
+
+
+                # ------------------------------------------------
+                # API RESPONSE
+                # ------------------------------------------------
 
                 st.subheader("📦 API Response")
 
                 st.json(result)
 
+
             else:
 
                 if response:
+
                     st.error(
                         f"Prediction failed: "
                         f"{response.status_code}"
                     )
 
-                    st.code(response.text)
+                    st.code(
+                        response.text
+                    )
 
 
 # ============================================================
@@ -400,13 +581,21 @@ elif page == "📋 Predictions":
 
     st.title("📋 Prediction History")
 
-    data = api_get("/predictions")
+
+    data = api_get(
+        "/predictions"
+    )
+
 
     if data and data.get("predictions"):
 
         predictions = data["predictions"]
 
-        df = pd.DataFrame(predictions)
+
+        df = pd.DataFrame(
+            predictions
+        )
+
 
         if not df.empty:
 
@@ -414,16 +603,30 @@ elif page == "📋 Predictions":
                 df["prediction_score"] * 100
             ).round(1)
 
+
             df = df.rename(
                 columns={
-                    "id": "Prediction ID",
-                    "prospect_id": "Prospect ID",
-                    "prediction_score": "Probability (%)",
-                    "prediction_label": "Prediction",
-                    "model_version": "Model Version",
-                    "created_at": "Created At"
+
+                    "id":
+                        "Prediction ID",
+
+                    "prospect_id":
+                        "Prospect ID",
+
+                    "prediction_score":
+                        "Probability (%)",
+
+                    "prediction_label":
+                        "Prediction",
+
+                    "model_version":
+                        "Model Version",
+
+                    "created_at":
+                        "Created At"
                 }
             )
+
 
             st.dataframe(
                 df,
@@ -431,14 +634,21 @@ elif page == "📋 Predictions":
                 hide_index=True
             )
 
+
             st.caption(
                 f"Total predictions: {len(df)}"
             )
 
+
         else:
-            st.info("No predictions found.")
+
+            st.info(
+                "No predictions found."
+            )
+
 
     else:
+
         st.info(
             "No predictions have been generated yet."
         )
@@ -452,6 +662,7 @@ elif page == "🔄 CRM Feedback":
 
     st.title("🔄 CRM Outcome Feedback")
 
+
     st.write(
         """
         Connect the prediction to the actual CRM outcome.
@@ -459,26 +670,59 @@ elif page == "🔄 CRM Feedback":
         """
     )
 
-    predictions_data = api_get("/predictions")
 
-    if predictions_data and predictions_data.get("predictions"):
+    # --------------------------------------------------------
+    # GET PREDICTIONS
+    # --------------------------------------------------------
 
-        predictions = predictions_data["predictions"]
+    predictions_data = api_get(
+        "/predictions"
+    )
+
+
+    if (
+        predictions_data
+        and predictions_data.get("predictions")
+    ):
+
+        predictions = predictions_data[
+            "predictions"
+        ]
+
+
+        # ----------------------------------------------------
+        # CREATE DROPDOWN OPTIONS
+        # ----------------------------------------------------
 
         prediction_options = {
-            f"#{p['id']} — {p['prospect_id']} — "
+
+            f"#{p['id']} — "
+            f"{p['prospect_id']} — "
             f"{p['prediction_label'].upper()} "
             f"({p['prediction_score'] * 100:.1f}%)":
+
             p["id"]
+
             for p in predictions
         }
 
+
         selected = st.selectbox(
             "Select Prediction",
-            list(prediction_options.keys())
+            list(
+                prediction_options.keys()
+            )
         )
 
-        prediction_id = prediction_options[selected]
+
+        prediction_id = prediction_options[
+            selected
+        ]
+
+
+        # ----------------------------------------------------
+        # OUTCOME
+        # ----------------------------------------------------
 
         outcome = st.radio(
             "Actual CRM Outcome",
@@ -486,32 +730,53 @@ elif page == "🔄 CRM Feedback":
             horizontal=True
         )
 
+
+        # ----------------------------------------------------
+        # SAVE OUTCOME
+        # ----------------------------------------------------
+
         if st.button(
             "💾 Save CRM Outcome",
             use_container_width=True
         ):
 
             payload = {
-                "prediction_id": prediction_id,
-                "outcome": outcome
+
+                "prediction_id":
+                    prediction_id,
+
+                "outcome":
+                    outcome
             }
+
 
             response = api_post(
                 "/feedback",
                 payload
             )
 
-            if response and response.status_code == 200:
+
+            if (
+                response
+                and response.status_code == 200
+            ):
 
                 result = response.json()
 
-                if result.get("status") == "saved":
+
+                if result.get(
+                    "status"
+                ) == "saved":
 
                     st.success(
                         "CRM outcome saved successfully."
                     )
 
-                    st.json(result)
+
+                    st.json(
+                        result
+                    )
+
 
                 else:
 
@@ -522,6 +787,7 @@ elif page == "🔄 CRM Feedback":
                         )
                     )
 
+
             elif response:
 
                 st.error(
@@ -529,41 +795,79 @@ elif page == "🔄 CRM Feedback":
                     f"{response.status_code}"
                 )
 
-                st.code(response.text)
+
+                st.code(
+                    response.text
+                )
+
 
     else:
 
         st.info(
-            "Generate a prediction first before adding CRM feedback."
+            "Generate a prediction first before "
+            "adding CRM feedback."
         )
+
 
     st.divider()
 
-    st.subheader("📜 Feedback History")
 
-    feedback_data = api_get("/feedback")
+    # --------------------------------------------------------
+    # FEEDBACK HISTORY
+    # --------------------------------------------------------
 
-    if feedback_data and feedback_data.get("feedback"):
+    st.subheader(
+        "📜 Feedback History"
+    )
 
-        feedback = feedback_data["feedback"]
 
-        df = pd.DataFrame(feedback)
+    feedback_data = api_get(
+        "/feedback"
+    )
+
+
+    if (
+        feedback_data
+        and feedback_data.get("feedback")
+    ):
+
+        feedback = feedback_data[
+            "feedback"
+        ]
+
+
+        df = pd.DataFrame(
+            feedback
+        )
+
 
         df = df.rename(
             columns={
-                "id": "Feedback ID",
-                "prediction_id": "Prediction ID",
-                "prospect_id": "Prospect ID",
-                "outcome": "Outcome",
-                "created_at": "Created At"
+
+                "id":
+                    "Feedback ID",
+
+                "prediction_id":
+                    "Prediction ID",
+
+                "prospect_id":
+                    "Prospect ID",
+
+                "outcome":
+                    "Outcome",
+
+                "created_at":
+                    "Created At"
             }
         )
+
 
         st.dataframe(
             df,
             use_container_width=True,
             hide_index=True
         )
+
 
     else:
 
@@ -578,9 +882,15 @@ elif page == "🔄 CRM Feedback":
 
 elif page == "📊 Model Performance":
 
-    st.title("📊 Closed-Loop Model Performance")
+    st.title(
+        "📊 Closed-Loop Model Performance"
+    )
 
-    data = api_get("/model-performance")
+
+    data = api_get(
+        "/model-performance"
+    )
+
 
     if data:
 
@@ -589,82 +899,135 @@ elif page == "📊 Model Performance":
             0
         )
 
+
         accuracy = data.get(
             "accuracy",
             0
         )
+
 
         precision = data.get(
             "precision",
             0
         )
 
+
         recall = data.get(
             "recall",
             0
         )
 
+
+        # ----------------------------------------------------
+        # PERFORMANCE METRICS
+        # ----------------------------------------------------
+
         col1, col2, col3, col4 = st.columns(4)
 
+
         with col1:
+
             st.metric(
                 "Matched Predictions",
                 total
             )
 
+
         with col2:
+
             st.metric(
                 "Accuracy",
                 f"{accuracy * 100:.1f}%"
             )
 
+
         with col3:
+
             st.metric(
                 "Precision",
                 f"{precision * 100:.1f}%"
             )
 
+
         with col4:
+
             st.metric(
                 "Recall",
                 f"{recall * 100:.1f}%"
             )
 
+
         st.divider()
 
-        st.subheader("Confusion Matrix")
+
+        # ----------------------------------------------------
+        # CONFUSION MATRIX
+        # ----------------------------------------------------
+
+        st.subheader(
+            "Confusion Matrix"
+        )
+
 
         cm_col1, cm_col2 = st.columns(2)
+
 
         with cm_col1:
 
             st.metric(
                 "True Positives",
-                data.get("true_positives", 0)
+                data.get(
+                    "true_positives",
+                    0
+                )
             )
+
 
             st.metric(
                 "False Positives",
-                data.get("false_positives", 0)
+                data.get(
+                    "false_positives",
+                    0
+                )
             )
+
 
         with cm_col2:
 
             st.metric(
                 "True Negatives",
-                data.get("true_negatives", 0)
+                data.get(
+                    "true_negatives",
+                    0
+                )
             )
+
 
             st.metric(
                 "False Negatives",
-                data.get("false_negatives", 0)
+                data.get(
+                    "false_negatives",
+                    0
+                )
             )
+
 
         st.divider()
 
-        st.subheader("Performance Data")
 
-        st.json(data)
+        # ----------------------------------------------------
+        # RAW PERFORMANCE DATA
+        # ----------------------------------------------------
+
+        st.subheader(
+            "Performance Data"
+        )
+
+
+        st.json(
+            data
+        )
+
 
     else:
 
@@ -679,7 +1042,10 @@ elif page == "📊 Model Performance":
 
 elif page == "🤖 Retrain Model":
 
-    st.title("🤖 Model Retraining")
+    st.title(
+        "🤖 Model Retraining"
+    )
+
 
     st.warning(
         """
@@ -687,6 +1053,11 @@ elif page == "🤖 Retrain Model":
         current training dataset.
         """
     )
+
+
+    # --------------------------------------------------------
+    # RETRAIN BUTTON
+    # --------------------------------------------------------
 
     if st.button(
         "🔄 Retrain Model",
@@ -701,15 +1072,26 @@ elif page == "🤖 Retrain Model":
                 "/retrain"
             )
 
-        if response and response.status_code == 200:
+
+        if (
+            response
+            and response.status_code == 200
+        ):
 
             result = response.json()
+
 
             st.success(
                 "Model retrained successfully."
             )
 
+
+            # ------------------------------------------------
+            # MODEL INFORMATION
+            # ------------------------------------------------
+
             col1, col2 = st.columns(2)
+
 
             with col1:
 
@@ -721,6 +1103,7 @@ elif page == "🤖 Retrain Model":
                     )
                 )
 
+
                 st.metric(
                     "Training Records",
                     result.get(
@@ -728,6 +1111,7 @@ elif page == "🤖 Retrain Model":
                         0
                     )
                 )
+
 
             with col2:
 
@@ -739,46 +1123,66 @@ elif page == "🤖 Retrain Model":
                     )
                 )
 
+
+            # ------------------------------------------------
+            # VALIDATION METRICS
+            # ------------------------------------------------
+
             st.subheader(
                 "Validation Metrics"
             )
+
 
             metrics = result.get(
                 "validation_metrics",
                 {}
             )
 
+
             if metrics:
 
                 m1, m2, m3, m4 = st.columns(4)
 
+
                 with m1:
+
                     st.metric(
                         "Accuracy",
                         f"{metrics.get('accuracy', 0) * 100:.1f}%"
                     )
 
+
                 with m2:
+
                     st.metric(
                         "Precision",
                         f"{metrics.get('precision', 0) * 100:.1f}%"
                     )
 
+
                 with m3:
+
                     st.metric(
                         "Recall",
                         f"{metrics.get('recall', 0) * 100:.1f}%"
                     )
 
+
                 with m4:
+
                     st.metric(
                         "F1 Score",
                         f"{metrics.get('f1_score', 0) * 100:.1f}%"
                     )
 
+
             st.divider()
 
-            st.json(result)
+
+            st.json(
+                result
+            )
+
 
         elif response:
 
@@ -787,4 +1191,7 @@ elif page == "🤖 Retrain Model":
                 f"{response.status_code}"
             )
 
-            st.code(response.text)
+
+            st.code(
+                response.text
+            )
