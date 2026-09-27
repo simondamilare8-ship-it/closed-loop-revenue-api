@@ -1,12 +1,31 @@
+import os
 import sqlite3
 from datetime import datetime
 
-DATABASE = "data/revenue.db"
+
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+DATABASE = os.path.join(
+    BASE_DIR,
+    "data",
+    "revenue.db"
+)
+
 
 def get_connection():
+
+    os.makedirs(
+        os.path.dirname(DATABASE),
+        exist_ok=True
+    )
+
     return sqlite3.connect(DATABASE)
 
+
 def initialize_database():
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -27,14 +46,22 @@ def initialize_database():
             prediction_id INTEGER,
             outcome TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            FOREIGN KEY (prediction_id) REFERENCES predictions(id)
+            FOREIGN KEY (prediction_id)
+                REFERENCES predictions(id)
         )
     """)
 
     connection.commit()
     connection.close()
 
-def save_prediction(prospect_id, prediction_score, prediction_label, model_version):
+
+def save_prediction(
+    prospect_id,
+    prediction_score,
+    prediction_label,
+    model_version
+):
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -62,7 +89,9 @@ def save_prediction(prospect_id, prediction_score, prediction_label, model_versi
 
     return prediction_id
 
+
 def save_feedback(prediction_id, outcome):
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -82,7 +111,9 @@ def save_feedback(prediction_id, outcome):
     connection.commit()
     connection.close()
 
+
 def get_feedback():
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -100,11 +131,14 @@ def get_feedback():
     """)
 
     rows = cursor.fetchall()
+
     connection.close()
 
     return rows
 
+
 def get_predictions():
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -121,11 +155,14 @@ def get_predictions():
     """)
 
     rows = cursor.fetchall()
+
     connection.close()
 
     return rows
 
+
 def get_model_performance():
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -139,11 +176,13 @@ def get_model_performance():
     """)
 
     rows = cursor.fetchall()
+
     connection.close()
 
     total = len(rows)
 
     if total == 0:
+
         return {
             "total_matched_predictions": 0,
             "correct_predictions": 0,
@@ -163,31 +202,53 @@ def get_model_performance():
     false_negatives = 0
 
     for prediction, outcome in rows:
-        predicted_positive = prediction == "high"
-        actual_positive = outcome == "won"
+
+        predicted_positive = (
+            prediction == "high"
+        )
+
+        actual_positive = (
+            outcome == "won"
+        )
 
         if predicted_positive and actual_positive:
+
             true_positives += 1
+
         elif not predicted_positive and not actual_positive:
+
             true_negatives += 1
+
         elif predicted_positive and not actual_positive:
+
             false_positives += 1
+
         else:
+
             false_negatives += 1
 
-    correct = true_positives + true_negatives
-    incorrect = false_positives + false_negatives
+    correct = (
+        true_positives +
+        true_negatives
+    )
+
+    incorrect = (
+        false_positives +
+        false_negatives
+    )
 
     accuracy = correct / total
 
     precision = (
-        true_positives / (true_positives + false_positives)
+        true_positives /
+        (true_positives + false_positives)
         if true_positives + false_positives > 0
         else 0
     )
 
     recall = (
-        true_positives / (true_positives + false_negatives)
+        true_positives /
+        (true_positives + false_negatives)
         if true_positives + false_negatives > 0
         else 0
     )
